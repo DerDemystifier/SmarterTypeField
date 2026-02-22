@@ -443,6 +443,124 @@ describe('ignore_punctuations tests', () => {
     });
 });
 
+describe('ignore_extra_words tests', () => {
+    beforeEach(() => {
+        addon_config.ignore_extra_words = true;
+        addon_config.ignore_case = true;
+        addon_config.ignore_accents = false;
+        addon_config.ignore_punctuations = false;
+    });
+
+    afterEach(() => {
+        addon_config.ignore_extra_words = false;
+    });
+
+    it('accepts typed sentence that contains the answer', () => {
+        /**
+         * Use case: cloze deletion cards where the user types the full sentence
+         * instead of just the hidden phrase.
+         * User types: New coffee shops have sprung up all over the neighborhood
+         * Answer is : sprung up
+         * Expected result: All green (answer found as substring of typed text)
+         */
+
+        // Setup
+        document.body.innerHTML = f(/*html*/ `
+        <code id="typeans">
+            <span class="typeBad">New coffee shops have </span><span class="typeGood">sprung up</span><span class="typeBad"> all over the neighborhood</span>
+                <br><span id="typearrow">↓</span><br>
+            <span class="typeGood">sprung up</span>
+        </code>`);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+        <code id="typeans">
+            <span class="typeGood">sprung up</span>
+        </code>`)
+        );
+    });
+
+    it('accepts typed sentence with case variation when ignore_case is enabled', () => {
+        /**
+         * Use case: cloze sentence typed with different capitalisation.
+         * User types: Too Far Into The Weeds, she lost the big picture.
+         * Answer is : too far into the weeds
+         * Expected result: All green
+         */
+
+        // Setup
+        document.body.innerHTML = f(/*html*/ `
+        <code id="typeans">
+            <span class="typeBad">Too Far Into The Weeds</span><span class="typeBad">, she lost the big picture.</span>
+                <br><span id="typearrow">↓</span><br>
+            <span class="typeGood">too far into the weeds</span>
+        </code>`);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+        <code id="typeans">
+            <span class="typeGood">too far into the weeds</span>
+        </code>`)
+        );
+    });
+
+    it('shows diff when typed text does not contain the answer', () => {
+        /**
+         * Use case: user types a wrong phrase — normal diff should still apply.
+         * User types: spring up
+         * Answer is : sprung up
+         * Expected result: Normal diff display (not all green)
+         */
+
+        // Setup
+        document.body.innerHTML = f(/*html*/ `
+        <code id="typeans">
+            <span class="typeGood">spr</span><span class="typeBad">i</span><span class="typeGood">ng up</span>
+                <br><span id="typearrow">↓</span><br>
+            <span class="typeGood">spr</span><span class="typeMissed">u</span><span class="typeGood">ng up</span>
+        </code>`);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify - diff should still apply, not everything green
+        expect(document.body.innerHTML).not.toEqual(
+            f(/*html*/ `<code id="typeans"><span class="typeGood">sprung up</span></code>`)
+        );
+    });
+
+    it('is disabled by default and does not affect normal diff', () => {
+        /**
+         * When ignore_extra_words is false (default), typing extra words should NOT
+         * be accepted and normal diff applies.
+         */
+
+        addon_config.ignore_extra_words = false;
+
+        // Setup
+        document.body.innerHTML = f(/*html*/ `
+        <code id="typeans">
+            <span class="typeBad">New coffee shops have </span><span class="typeGood">sprung up</span><span class="typeBad"> all over</span>
+                <br><span id="typearrow">↓</span><br>
+            <span class="typeGood">sprung up</span>
+        </code>`);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify - should NOT be all green, extra words cause a diff
+        expect(document.body.innerHTML).toContain('typeBad');
+    });
+});
+
 /**
  * Removes whitespace between HTML tags and trims the string.
  *
