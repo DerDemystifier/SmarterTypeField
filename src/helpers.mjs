@@ -43,12 +43,25 @@ function constructLetters(listElems) {
 
 /**
  * Checks if a given character is a punctuation mark.
+ * Uses Unicode property escapes (\p{P}) to cover all Unicode punctuation categories,
+ * including language-specific punctuation such as Japanese 「」『』、。,
+ * Chinese 〔〕《》，、Arabic ،؟, French «», Spanish ¡¿, and more.
+ * Also includes common ASCII math/symbol characters not covered by \p{P}:
+ * $, +, <, =, >, ^, |, ~
+ *
+ * - **`\p{P}`** (with the `u` flag) replaces the hardcoded ASCII list. It covers all 7 Unicode punctuation categories:
+ *   - `Pi`/`Pf` — initial/final quotes: `«»`, `""`，`''`, Japanese `「」`、`『』`
+ *   - `Ps`/`Pe` — brackets: `（）`、`【】`、`〔〕`、`《》`、`〈〉`
+ *   - `Po` — other: `。`、`、`、`·`、`…`、`¡`、`؟`、`،` and hundreds more
+ *   - `Pd` — dashes: `—`, `–`, `‐`
+ *   - `Pc` — connectors: `_`, etc.
+ * - **`$+<=>^|~`** are kept explicitly because they're Unicode *symbols* (`\p{S}`/`\p{Sm}`), not punctuation (`\p{P}`), so `\p{P}` alone wouldn't catch them.
  *
  * @param {string} char - The character to check.
  * @returns {boolean} - Returns true if the character is a punctuation mark, otherwise false.
  */
 function isPunctuation(char) {
-    return /[!"#$%&'()*+,-./:;<=>¿?@[\]^_`{|}~]/.test(char);
+    return /[\p{P}$+<=>^|~]/u.test(char);
 }
 
 /**
