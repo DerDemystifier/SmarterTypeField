@@ -31,10 +31,14 @@ def open_config_dialog():
     ignore_punct_cb = QCheckBox("Ignore Punctuations")
     ignore_punct_cb.setChecked(config.get("ignore_punctuations", False))
 
+    ignore_extra_words_cb = QCheckBox("Ignore Extra Words (accept answer if typed text contains it)")
+    ignore_extra_words_cb.setChecked(config.get("ignore_extra_words", False))
+
     # Add widgets to layout
     layout.addWidget(ignore_case_cb)
     layout.addWidget(ignore_accents_cb)
     layout.addWidget(ignore_punct_cb)
+    layout.addWidget(ignore_extra_words_cb)
 
     # Save button
     save_button = QPushButton("Save")
@@ -47,6 +51,7 @@ def open_config_dialog():
             "ignore_case": ignore_case_cb.isChecked(),
             "ignore_accents": ignore_accents_cb.isChecked(),
             "ignore_punctuations": ignore_punct_cb.isChecked(),
+            "ignore_extra_words": ignore_extra_words_cb.isChecked(),
         }
 
         # Save the settings

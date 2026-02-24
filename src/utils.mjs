@@ -38,6 +38,32 @@ function compareInputToAnswer(addon_config) {
     const full_answer = constructLetters(answerSpans);
 
     const diffCharsOpts = addon_config.ignore_case ? { ignoreCase: true } : {};
+
+    // If ignore_extra_words is enabled, check if the entry contains the answer as a
+    // substring before running the full diff. This accepts answers where the user types
+    // the full sentence instead of just the expected phrase (e.g., typing a complete
+    // cloze sentence when only the hidden phrase is expected).
+    if (addon_config.ignore_extra_words) {
+        let entry_to_check = full_entry;
+        let answer_to_check = full_answer;
+
+        if (addon_config.ignore_accents) {
+            entry_to_check = entry_to_check.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            answer_to_check = answer_to_check.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        if (addon_config.ignore_case) {
+            entry_to_check = entry_to_check.toLowerCase();
+            answer_to_check = answer_to_check.toLowerCase();
+        }
+
+        if (answer_to_check.length > 0 && entry_to_check !== answer_to_check && entry_to_check.includes(answer_to_check)) {
+            answerSpans.forEach((span) => span.setAttribute('class', 'typeGood'));
+            comparison_area.innerHTML = answerSpans.map((elem) => elem.outerHTML).join('');
+            return;
+        }
+    }
+
     let diff = () => diffChars(full_entry, full_answer, diffCharsOpts);
 
     if (addon_config.ignore_accents) {

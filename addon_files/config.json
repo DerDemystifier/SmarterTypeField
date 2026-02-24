@@ -1,5 +1,6 @@
 {
     "ignore_case": true,
     "ignore_accents": false,
-    "ignore_punctuations": false
+    "ignore_punctuations": false,
+    "ignore_extra_words": false
 }
