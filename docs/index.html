@@ -57,11 +57,12 @@
             <img src="images/after.png" />
         </p>
 
-        <p>Adds three options to the <code class="language-plaintext highlighter-rouge">{{type:}}</code> field in Anki:</p>
+        <p>Adds four options to the <code class="language-plaintext highlighter-rouge">{{type:}}</code> field in Anki:</p>
         <ul>
             <li><code>ignore_case</code> makes the type field ignore case when checking the answer.</li>
             <li><code>ignore_accents</code> allows the type field to disregard accents when checking the answer.</li>
             <li><code>ignore_punctuations</code> makes the type field ignore punctuation marks when checking the answer.</li>
+            <li><code>ignore_extra_words</code> accepts the answer as correct if the typed text contains the correct answer as a substring. Particularly useful for cloze deletion cards where users may type the full sentence instead of just the hidden phrase.</li>
         </ul>
         <p>The options can be used together or separately.</p>
 

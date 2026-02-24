@@ -39,76 +39,86 @@ function compareInputToAnswer(addon_config) {
 
     const diffCharsOpts = addon_config.ignore_case ? { ignoreCase: true } : {};
 
-    // If ignore_extra_words is enabled, check if the entry contains the answer as a
-    // substring before running the full diff. This accepts answers where the user types
-    // the full sentence instead of just the expected phrase (e.g., typing a complete
-    // cloze sentence when only the hidden phrase is expected).
-    if (addon_config.ignore_extra_words) {
-        let entry_to_check = full_entry;
-        let answer_to_check = full_answer;
-
-        if (addon_config.ignore_accents) {
-            entry_to_check = entry_to_check.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            answer_to_check = answer_to_check.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        }
-
-        if (addon_config.ignore_case) {
-            entry_to_check = entry_to_check.toLowerCase();
-            answer_to_check = answer_to_check.toLowerCase();
-        }
-
-        if (answer_to_check.length > 0 && entry_to_check !== answer_to_check && entry_to_check.includes(answer_to_check)) {
-            answerSpans.forEach((span) => span.setAttribute('class', 'typeGood'));
-            comparison_area.innerHTML = answerSpans.map((elem) => elem.outerHTML).join('');
-            return;
-        }
-    }
-
-    let diff = () => diffChars(full_entry, full_answer, diffCharsOpts);
+    // Pre-compute accent-normalized strings — reused by the extra-words check and the diff.
+    let normalized_entry = full_entry;
+    let normalized_answer = full_answer;
 
     if (addon_config.ignore_accents) {
-        // Remove accents from both entry and answer.
-        var normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        var normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-        diff = () => diffChars(normalized_entry, normalized_answer, diffCharsOpts);
+        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
-    diff = diff(); // execute the diff function to get the diff array
+    // ignore_extra_words: check if the entry contains the answer as a substring using all
+    // What this does is that if the answer (e.g "Anki") is fully matched in the diff, but there's some extra words in the entry (e.g "The app is called Anki"), then we consider it a full match and show the all-green answer. This way, users who type extra words before/after the correct answer can still get full credit as long as the correct answer is fully present in their input.
+    let diff;
+    if (addon_config.ignore_extra_words) {
+        // Must run before diffChars: jsdiff's global LCS optimization does not align characters in a way that reliably reflects substring containment, so the check has to be literal.
 
-    if (addon_config.ignore_punctuations) {
-        // If punctuations are ignored, we want to split the parts that contain punctuations so they can be processed separately.
-        const newDiffParts = [];
+        let entry_to_check = normalized_entry;
+        let answer_to_check = normalized_answer;
 
-        for (const part of diff) {
-            if (!part.value) continue;
-
-            if (!hasPunctuation(part.value)) {
-                newDiffParts.push(part);
-                continue;
-            }
-
-            if (part.value.split('').every((char) => isPunctuation(char))) {
-                // If part contains only punctuation, push it as is
-                newDiffParts.push(part);
-                continue;
-            }
-
-            // Split part if it contains punctuation into separate parts of words and punctuations.
-            const splitStrs = extractWordsAndSymbols(part.value);
-            if (splitStrs.length > 1) {
-                splitStrs.forEach((str) => {
-                    // parts should have the same properties as the original part. Just change the value.
-                    let newPart = { ...part };
-                    newPart.value = str;
-                    newDiffParts.push(newPart);
-                });
-            } else {
-                newDiffParts.push(part);
-            }
+        if (addon_config.ignore_punctuations) {
+            const strip = (str) =>
+                str
+                    .split('')
+                    .filter((ch) => !isPunctuation(ch))
+                    .join('');
+            entry_to_check = strip(entry_to_check);
+            answer_to_check = strip(answer_to_check);
         }
 
-        diff = newDiffParts;
+        if (answer_to_check.length > 0 && entry_to_check !== answer_to_check) {
+            const escapedAnswer = answer_to_check.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // ignore_case is handled via a regex /i flag rather than .toLowerCase(), consistent with how diffChars handles it via the ignoreCase option.
+            const flags = addon_config.ignore_case ? 'i' : '';
+            if (new RegExp(escapedAnswer, flags).test(entry_to_check)) {
+                diff = [{ value: full_answer }]; // single equal part → hits the all-green render path
+            }
+        }
+    }
+
+    if (!diff) {
+        diff = diffChars(
+            addon_config.ignore_accents ? normalized_entry : full_entry,
+            addon_config.ignore_accents ? normalized_answer : full_answer,
+            diffCharsOpts,
+        );
+
+        if (addon_config.ignore_punctuations) {
+            // If punctuations are ignored, we want to split the parts that contain punctuations so they can be processed separately.
+            const newDiffParts = [];
+
+            for (const part of diff) {
+                if (!part.value) continue;
+
+                if (!hasPunctuation(part.value)) {
+                    newDiffParts.push(part);
+                    continue;
+                }
+
+                if (part.value.split('').every((char) => isPunctuation(char))) {
+                    // If part contains only punctuation, push it as is
+                    newDiffParts.push(part);
+                    continue;
+                }
+
+                // Split part if it contains punctuation into separate parts of words and punctuations.
+                const splitStrs = extractWordsAndSymbols(part.value);
+                if (splitStrs.length > 1) {
+                    splitStrs.forEach((str) => {
+                        // parts should have the same properties as the original part. Just change the value.
+                        let newPart = { ...part };
+                        newPart.value = str;
+                        newDiffParts.push(newPart);
+                    });
+                } else {
+                    newDiffParts.push(part);
+                }
+            }
+
+            diff = newDiffParts;
+        }
     }
 
     if (diff.length === 1) {

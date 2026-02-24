@@ -15,6 +15,7 @@ Variables:
     __config_timestamp__ (Union[str, None]): The configuration timestamp, read from the configuration timestamp file.
     __addon_config__ (Union[dict[str, Any], None]): The configuration of the add-on, initially set to None.
 """
+
 import os
 from typing import Any, Union
 
@@ -24,6 +25,7 @@ from .utils import currentTimestamp, readFile, writeToFile
 
 ADDON_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 
+# VERSION_FILE is used to track the version of the add-on. This allows us to detect when the add-on has been updated so we copy the new js files to the media collection folder.
 VERSION_FILE = os.path.join(ADDON_PATH, "VERSION")
 CONFIG_TIMESTAMP_FILE = os.path.join(ADDON_PATH, "CONFIG_TIMESTAMP")
 

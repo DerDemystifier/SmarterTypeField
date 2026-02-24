@@ -24,15 +24,34 @@ def open_config_dialog():
     layout = QVBoxLayout()
     ignore_case_cb = QCheckBox("Ignore Case")
     ignore_case_cb.setChecked(config.get("ignore_case", True))
+    ignore_case_cb.setToolTip(
+        "When enabled, letter case differences are ignored.\n"
+        "For example, 'Hello' and 'hello' are treated as the same."
+    )
 
     ignore_accents_cb = QCheckBox("Ignore Accents")
     ignore_accents_cb.setChecked(config.get("ignore_accents", False))
+    ignore_accents_cb.setToolTip(
+        "When enabled, accented characters are treated as their base character.\n"
+        "For example, 'café' and 'cafe', 'naïve' and 'naive' are treated as the same."
+    )
 
     ignore_punct_cb = QCheckBox("Ignore Punctuations")
     ignore_punct_cb.setChecked(config.get("ignore_punctuations", False))
+    ignore_punct_cb.setToolTip(
+        "When enabled, punctuation marks are ignored during comparison.\n"
+        "For example, 'Hello, world!' and 'Hello world' are treated as the same."
+    )
 
-    ignore_extra_words_cb = QCheckBox("Ignore Extra Words (accept answer if typed text contains it)")
+    ignore_extra_words_cb = QCheckBox(
+        "Ignore Extra Words (accepts if answer appears in typed text)"
+    )
     ignore_extra_words_cb.setChecked(config.get("ignore_extra_words", False))
+    ignore_extra_words_cb.setToolTip(
+        "Useful for cloze deletion cards ({{type:cloze:Field}}) where users may type the full sentence.\n"
+        "When enabled, your answer is marked correct if you typed the correct phrase somewhere in your response, even with extra words.\n"
+        "For example, if the correct answer is 'cat' and the user types 'the cat', it will be accepted as correct."
+    )
 
     # Add widgets to layout
     layout.addWidget(ignore_case_cb)
