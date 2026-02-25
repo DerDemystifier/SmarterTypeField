@@ -21,37 +21,6 @@ def delete_all_deps(path: str, prefix: str = ""):
             os.remove(os.path.join(path, file))
 
 
-def add_nc_modifier(template: str) -> str:
-    """
-    Adds the :nc: modifier to all {{type:...}} fields in the given template, if not already present.
-
-    Transforms `{{type:Field}}` → `{{type:nc:Field}}` and
-    `{{type:cloze:Field}}` → `{{type:nc:cloze:Field}}`.
-
-    Args:
-        template (str): The card template string.
-
-    Returns:
-        str: The template string with :nc: added to all type fields.
-    """
-    return re.sub(r"\{\{type:(?!nc:)", "{{type:nc:", template, flags=re.IGNORECASE)
-
-
-def remove_nc_modifier(template: str) -> str:
-    """
-    Removes the :nc: modifier from all {{type:nc:...}} fields in the given template.
-
-    Transforms `{{type:nc:Field}}` → `{{type:Field}}`.
-
-    Args:
-        template (str): The card template string.
-
-    Returns:
-        str: The template string with :nc: removed from all type fields.
-    """
-    return re.sub(r"\{\{type:nc:", "{{type:", template, flags=re.IGNORECASE)
-
-
 def addScriptTag(template: str, script_tag: str) -> str:
     """
     Adds a script tag to the given template string.

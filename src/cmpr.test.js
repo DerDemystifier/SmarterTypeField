@@ -565,6 +565,34 @@ describe('ignore_punctuations tests', () => {
             </code>`),
         );
     });
+
+    it("ignores punctuations when ignore_accents is enabled", () => {
+        /**
+         * Issue: Case when answer contains apostrophes and quotes.
+         * User types: ハス停はここてすか?
+         * Answer is : バス停はここですか
+         * Vanilla result: with :nc modifier on, it ignores accents and marks punctuation as bad.
+         * Expected result: no typeBad, all green (punctuation is ignored together with accents when ignore_accents is enabled)
+        */
+
+        addon_config.ignore_accents = true;
+
+        // Setup
+        document.body.innerHTML = f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">ハス停はここてすか</span>
+                <span class="typeBad">?</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeGood">バス停はここですか</span>
+            </code>
+        `);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).not.toContain('typeBad');
+    });
 });
 
 describe('ignore_extra_words tests', () => {

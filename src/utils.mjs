@@ -44,8 +44,10 @@ function compareInputToAnswer(addon_config) {
     let normalized_answer = full_answer;
 
     if (addon_config.ignore_accents) {
-        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // U+0300-U+036F: Latin combining diacritics
+        // U+3099-U+309A: Japanese combining dakuten/handakuten (e.g. バ NFD = ハ + U+3099)
+        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a]/g, '');
+        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a]/g, '');
     }
 
     // ignore_extra_words: check if the entry contains the answer as a substring using all
