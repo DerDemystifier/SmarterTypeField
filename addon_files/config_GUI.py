@@ -29,11 +29,11 @@ def open_config_dialog():
         "For example, 'Hello' and 'hello' are treated as the same."
     )
 
-    ignore_accents_cb = QCheckBox("Ignore Accents")
+    ignore_accents_cb = QCheckBox("Ignore Accents/Diacritics")
     ignore_accents_cb.setChecked(config.get("ignore_accents", False))
     ignore_accents_cb.setToolTip(
-        "When enabled, accented characters are treated as their base character.\n"
-        "For example, 'café' and 'cafe', 'naïve' and 'naive' are treated as the same."
+        "When enabled, accented characters and diacritics are treated as their base character.\n"
+        "For example, 'café' and 'cafe', 'naïve' and 'naive', 'über' and 'uber' are treated as the same."
     )
 
     ignore_punct_cb = QCheckBox("Ignore Punctuations")

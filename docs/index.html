@@ -60,7 +60,7 @@
         <p>Adds four options to the <code class="language-plaintext highlighter-rouge">{{type:}}</code> field in Anki:</p>
         <ul>
             <li><code>ignore_case</code> makes the type field ignore case when checking the answer.</li>
-            <li><code>ignore_accents</code> allows the type field to disregard accents when checking the answer.</li>
+            <li><code>ignore_accents</code> allows the type field to disregard accents and diacritics when checking the answer. For example, 'café' and 'cafe', 'naïve' and 'naive' are treated as the same.</li>
             <li><code>ignore_punctuations</code> makes the type field ignore punctuation marks when checking the answer.</li>
             <li><code>ignore_extra_words</code> accepts the answer as correct if the typed text contains the correct answer as a substring. Particularly useful for cloze deletion cards where users may type the full sentence instead of just the hidden phrase.</li>
         </ul>
@@ -117,7 +117,7 @@
         <h3 id="how-does-this-work">How does this work?</h3>
 
         <blockquote>
-            <p>This add-on checks what you type against the correct answer without worrying about uppercase/lowercase letters, accents, or punctuation. For example, "ÀNKI!" and "Anki" can be treated the same based on your settings. It adds a script to your card templates that use the `{{type:}}` field without changing any existing code. This makes the add-on work on **AnkiDesktop**, **AnkiDroid**, and **AnkiMobile**.</p>
+            <p>This add-on checks what you type against the correct answer without worrying about uppercase/lowercase letters, accents/diacritics, or punctuation. For example, "ÀNKI!" and "Anki" can be treated the same based on your settings. It adds a script to your card templates that use the `{{type:}}` field without changing any existing code. This makes the add-on work on **AnkiDesktop**, **AnkiDroid**, and **AnkiMobile**.</p>
         </blockquote>
 
         <h3 id="does-this-work-in-anki-version-2xxx">How to uninstall?</h3>

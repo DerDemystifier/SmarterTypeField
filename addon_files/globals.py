@@ -27,6 +27,7 @@ ADDON_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 
 # VERSION_FILE is used to track the version of the add-on. This allows us to detect when the add-on has been updated so we copy the new js files to the media collection folder.
 VERSION_FILE = os.path.join(ADDON_PATH, "VERSION")
+# CONFIG_TIMESTAMP_FILE stores the timestamp of the currently deployed JS file in the media folder. When VERSION_FILE ≠ CONFIG_TIMESTAMP_FILE, we know the add-on has been updated and we need to delete the old JS file (ref in CONFIG_TIMESTAMP_FILE) from the media folder and copy the new one there.
 CONFIG_TIMESTAMP_FILE = os.path.join(ADDON_PATH, "CONFIG_TIMESTAMP")
 
 

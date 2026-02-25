@@ -10,10 +10,12 @@ from aqt.utils import showInfo
 from . import globals as g
 
 from .utils import (
+    add_nc_modifier,
     addScriptTag,
     currentTimestamp,
     delete_all_deps,
     readFile,
+    remove_nc_modifier,
     removeScriptTag,
     writeToFile,
 )
@@ -133,6 +135,7 @@ def inspectNoteType(note_type: Any, intent: str) -> None:
 
     type_pattern = re.compile(r"{{.*type:.+}}", flags=re.IGNORECASE)
     script_tag = "<script role='smarterTypeField'"
+    ignore_accents = bool(g.__addon_config__ and g.__addon_config__.get("ignore_accents"))
 
     if not mw or not mw.col:
         return
@@ -150,14 +153,33 @@ def inspectNoteType(note_type: Any, intent: str) -> None:
 
             updated = True
             card_type["afmt"] = removeScriptTag(card_type["afmt"])
-        elif type_pattern.search(question_template) and (
-            g.__version__ not in answer_template
-            or (g.__config_timestamp__ not in answer_template if g.__config_timestamp__ else True)
-        ):
-            # Otherwise, if the type field is present but the script tag is not present or is outdated
+            # Also remove :nc: modifier on uninstall
+            card_type["qfmt"] = remove_nc_modifier(card_type["qfmt"])
+            card_type["afmt"] = remove_nc_modifier(card_type["afmt"])
+        elif type_pattern.search(question_template):
+            # Apply or repeal :nc: modifier based on ignore_accents setting
+            new_qfmt = (
+                add_nc_modifier(card_type["qfmt"])
+                if ignore_accents
+                else remove_nc_modifier(card_type["qfmt"])
+            )
+            new_afmt = (
+                add_nc_modifier(card_type["afmt"])
+                if ignore_accents
+                else remove_nc_modifier(card_type["afmt"])
+            )
 
-            updated = True
-            card_type["afmt"] = addScriptTag(card_type["afmt"], addon_script_tag())
+            if new_qfmt != card_type["qfmt"] or new_afmt != card_type["afmt"]:
+                updated = True
+                card_type["qfmt"] = new_qfmt
+                card_type["afmt"] = new_afmt
+
+            # Update script tag if not present or outdated
+            if g.__version__ not in card_type["afmt"] or (
+                g.__config_timestamp__ not in card_type["afmt"] if g.__config_timestamp__ else True
+            ):
+                updated = True
+                card_type["afmt"] = addScriptTag(card_type["afmt"], addon_script_tag())
 
     if updated:
         # Update the model in the collection
