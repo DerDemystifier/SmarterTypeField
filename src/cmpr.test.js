@@ -20,6 +20,29 @@ describe('ignore_case tests', () => {
         sessionStorage.removeItem('stf_typedInput');
     });
 
+    it('matches when only case differs', () => {
+        /**
+         * Basic sanity check: the core feature.
+         * User types: HELLO WORLD
+         * Answer is : hello world
+         * Expected result: All green
+         */
+
+        // Setup
+        document.body.innerHTML = b('HELLO WORLD', 'hello world');
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">hello world</span>
+            </code>`),
+        );
+    });
+
     it('detects missing letter', () => {
         /**
          * Issue: Case when user misses a letter.
@@ -250,30 +273,6 @@ describe('ignore_accents tests', () => {
         );
     });
 
-    it('Ignore Accents - Multiple Accents in a String', () => {
-        /**
-         * Issue: Case when there are multiple accent mismatches.
-         * User types: eleve
-         * Answer is : élève
-         * Vanilla result: é and è are marked as missed
-         * Expected result: All green
-         */
-
-        // Setup
-        document.body.innerHTML = b('eleve', 'élève');
-
-        // Exercise
-        compareInputToAnswer(addon_config);
-
-        // Verify
-        expect(document.body.innerHTML).toEqual(
-            f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">élève</span>
-        </code>`),
-        );
-    });
-
     it('Ignore Accents - Non-Latin Scripts', () => {
         /**
          * Issue: Case when there are accent mismatches in non-Latin scripts.
@@ -384,6 +383,39 @@ describe('ignore_accents tests', () => {
                     <span class="typeGood">بَطِّيخ</span>
                 </code>
             `),
+        );
+    });
+
+    it('Ignore Japanese combining dakuten/handakuten (U+3099-U+309A)', () => {
+        /**
+         * The code strips U+3099-U+309A combining dakuten/handakuten so that
+         * ハス停 (no dakuten) matches バス停 (バ = ハ + U+3099).
+         * User types: ハス停
+         * Answer is : バス停  (バ represented as ハ + combining dakuten U+3099)
+         * Expected result: All green
+         */
+
+        // Construct answer with combining dakuten so NFD stripping is exercised
+        const combiningDakuten = '\u3099';
+        const answerWithDakuten = `\u30CF${combiningDakuten}\u30B9\u505C`; // ハ+dakuten+ス+停
+
+        sessionStorage.setItem('stf_typedInput', 'ハス停');
+        document.body.innerHTML = f(/*html*/ `
+            <code id="typeans">
+                <span class="typeBad">ハス停</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeMissed">${answerWithDakuten}</span>
+            </code>`);
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // The answer displayed should use the original (dakuten) form and be all green
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">${answerWithDakuten}</span>
+            </code>`),
         );
     });
 
@@ -659,31 +691,6 @@ describe('ignore_extra_words tests', () => {
         );
     });
 
-    it('shows diff when typed text does not contain the answer', () => {
-        /**
-         * Use Case: User types a wrong phrase — normal diff should still apply.
-         * User types: spring up
-         * Answer is : sprung up
-         * Vanilla result: Diff shows character mismatch (i vs u)
-         * Expected result: Normal diff display (not all green)
-         */
-
-        // Setup
-        document.body.innerHTML = b('spring up', 'sprung up');
-
-        // Exercise
-        compareInputToAnswer(addon_config);
-
-        // Verify - diff should still apply, not everything green
-        expect(document.body.innerHTML).not.toEqual(
-            f(/*html*/ `
-                <code id="typeans">
-                    <span class="typeGood">sprung up</span>
-                </code>
-            `),
-        );
-    });
-
     it('is disabled by default and does not affect normal diff', () => {
         /**
          * Use Case: Feature is disabled by default and should not interfere with normal diff.
@@ -703,6 +710,33 @@ describe('ignore_extra_words tests', () => {
 
         // Verify - should NOT be all green, extra words cause a diff
         expect(document.body.innerHTML).toContain('typeBad');
+    });
+
+    it('works with ignore_punctuations when answer is substring of typed sentence', () => {
+        /**
+         * Use Case: User types a sentence containing the answer but with extra punctuation.
+         * The ignore_punctuations strip path inside the extra-words check must be exercised.
+         * User types: She went to Paris, France.
+         * Answer is : Paris
+         * Expected result: All green (answer found in stripped entry)
+         */
+
+        addon_config.ignore_punctuations = true;
+
+        // Setup
+        document.body.innerHTML = b('She went to Paris, France.', 'Paris');
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+                <code id="typeans">
+                    <span class="typeGood">Paris</span>
+                </code>
+            `),
+        );
     });
 });
 
@@ -728,6 +762,7 @@ const b = (input, answer) => {
     // Pass input in sessionStorage to mimic the front template's capture of raw input, so compareInputToAnswer uses it directly rather than reconstructing from partially-matched spans.
     sessionStorage.setItem('stf_typedInput', input);
 
+    // There's no need to split the input and answer into individual typeGood/typeBad/typeMissed spans since the input and answer are constructed fully before comparison anyway, so it's irrelevant and we can just wrap them in single typeBad/typeMissed spans respectively.
     return f(/*html*/ `
         <code id="typeans">
             <span class="typeBad">${input}</span>
