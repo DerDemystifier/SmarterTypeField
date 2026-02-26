@@ -29,14 +29,22 @@ function destructLetters(elem) {
 }
 
 /**
- * Takes a NodeList, combines them and returns the resulting .innerText
+ * Takes a NodeList, combines them and returns the resulting text.
  * Ex: [<span>H</span>, <span>i</span>, <span>!</span>] => Hi!
- * @param {NodeList} listElems Elements to combine and return innerText of.
- * @returns .innerText of all elements in listElems combined.
+ * @param {NodeList} listElems Elements to combine and return text of.
+ * @returns Text of all elements in listElems combined.
  */
 function constructLetters(listElems) {
     return [...listElems]
-        .map((elem) => elem.innerHTML)
+        .map((elem) => {
+            // Use textContent to get raw Unicode text — innerHTML would re-serialise U+00A0 as
+            // the literal string "&nbsp;", which breaks downstream string comparisons.
+            // Anki inserts U+00A0 (NBSP) immediately before orphaned combining diacritical marks
+            // that land in their own span during its character-by-character comparison (this
+            // happens with Arabic harakat, Vietnamese tone marks, etc.).  Strip those spacers so
+            // the reconstructed text matches the original field value.
+            return elem.textContent.replace(/\u00a0(?=\p{M})/gu, '');
+        })
         .join('')
         .trim();
 }

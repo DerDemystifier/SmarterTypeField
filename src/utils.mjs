@@ -38,6 +38,8 @@ function compareInputToAnswer(addon_config) {
     // Falls back to reconstructing from Anki's comparison spans if sessionStorage is missing.
     const full_entry = sessionStorage.getItem('stf_typedInput')?.trim() ?? constructLetters(entrySpans);
     const full_answer = constructLetters(answerSpans);
+    console.log('Full entry:', full_entry);
+    console.log('Full answer:', full_answer);
 
     const diffCharsOpts = addon_config.ignore_case ? { ignoreCase: true } : {};
 
@@ -46,11 +48,15 @@ function compareInputToAnswer(addon_config) {
     let normalized_answer = full_answer;
 
     if (addon_config.ignore_accents) {
-        // U+0300-U+036F: Latin combining diacritics
+        // U+0300-U+036F: Latin/IPA combining diacritical marks
         // U+3099-U+309A: Japanese combining dakuten/handakuten (e.g. バ NFD = ハ + U+3099)
-        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a]/g, '');
-        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a]/g, '');
+        // U+064b-U+065f: Arabic diacritics (harakat: fatha, kasra, shadda, sukun, etc.)
+        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/g, '');
+        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/g, '');
     }
+
+    console.log('Normalized entry:', normalized_entry);
+    console.log('Normalized answer:', normalized_answer);
 
     // ignore_extra_words: check if the entry contains the answer as a substring using all
     // What this does is that if the answer (e.g "Anki") is fully matched in the diff, but there's some extra words in the entry (e.g "The app is called Anki"), then we consider it a full match and show the all-green answer. This way, users who type extra words before/after the correct answer can still get full credit as long as the correct answer is fully present in their input.
@@ -128,8 +134,10 @@ function compareInputToAnswer(addon_config) {
     if (diff.length === 1) {
         // diff.length === 1 means that the input is exactly the same as the answer, only case different.
         //      in this case, remove the entry and ↓ and leave the answer marked green!
-        answerSpans.forEach((span) => span.setAttribute('class', 'typeGood'));
-        comparison_area.innerHTML = mergeConsecutiveSpans(answerSpans.map((elem) => elem.outerHTML).join(''));
+        // Use full_answer (already clean Unicode from constructLetters) rather than recycling the
+        // original DOM spans, which may still contain U+00A0 injected by Anki before combining
+        // diacritical marks — those render as visible spaces in RTL scripts like Arabic.
+        comparison_area.innerHTML = `<span class="typeGood">${full_answer}</span>`;
     } else {
         // If they're not same, then reconstruct the entry and answer spans with the new classes based on the diff.
 
@@ -146,6 +154,28 @@ function compareInputToAnswer(addon_config) {
          * @type {number}
          */
         let processed_answer_parts_len = 0;
+
+        /**
+         * When ignore_accents is enabled the diff runs on the normalized answer (combining marks
+         * stripped), so diff part lengths are measured in normalized characters.  But full_answer
+         * keeps the original diacritics, meaning its codepoint count differs from the normalized
+         * version whenever combining marks are present (e.g. Arabic harakat, Vietnamese tones).
+         * normToOrig[i] contains the index in full_answer that corresponds to normalized char i,
+         * with a final sentinel entry equal to full_answer.length so that slicing the last part
+         * always works correctly.
+         */
+        let normToOrig = null;
+        if (addon_config.ignore_accents) {
+            const combiningRe = /[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/u;
+            const positions = [];
+            for (let i = 0; i < full_answer.length; i++) {
+                if (!combiningRe.test(full_answer[i])) {
+                    positions.push(i);
+                }
+            }
+            positions.push(full_answer.length); // sentinel
+            normToOrig = positions;
+        }
 
         diff.forEach((part, index) => {
             // entry and answer spans have different coloring, so we need to use different classes for each.
@@ -181,8 +211,12 @@ function compareInputToAnswer(addon_config) {
                     // if this part is punctuation and punctuation is ignored, we want to show the part as typeGood.
                     answer_span = `<span class="typeGood">${part.value}</span>`;
                 } else if (addon_config.ignore_accents) {
-                    // slice this part from the original answer to get the original part with accents.
-                    let original_part = full_answer.slice(processed_answer_parts_len, processed_answer_parts_len + part.value.length);
+                    // Slice the original (accent-containing) answer using the normToOrig map so that
+                    // a diff part of N normalized characters correctly captures all combining marks
+                    // that belong to those base characters in full_answer.
+                    let start = normToOrig[processed_answer_parts_len];
+                    let end = normToOrig[processed_answer_parts_len + part.value.length];
+                    let original_part = full_answer.slice(start, end);
                     answer_span = `<span class="${answer_typeClass}">${original_part}</span>`;
                 } else {
                     answer_span = `<span class="${answer_typeClass}">${part.value}</span>`;

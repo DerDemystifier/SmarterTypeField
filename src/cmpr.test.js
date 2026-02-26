@@ -318,6 +318,121 @@ describe('ignore_accents tests', () => {
         </code>`),
         );
     });
+
+    it('Ignore Arabic diacritics', () => {
+        /**
+         * Issue: Case when there are Arabic diacritic mismatches.
+         * User types: الحمد لله
+         * Answer is : الحمدُ للهِ
+         * Vanilla result: Arabic diacritics are marked as missed
+         * Expected result: All green
+         */
+
+        // Setup
+        document.body.innerHTML = b('الحمد لله', 'الحمدُ للهِ');
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+        <code id="typeans">
+            <span class="typeGood">الحمدُ للهِ</span>
+        </code>`),
+        );
+    });
+
+    it('Ignore Arabic diacritics - Anki char-by-char split with NBSP before harakat (regression)', () => {
+        /**
+         * Regression: When Anki does its own char-by-char comparison on Arabic text with
+         * harakat, it places each combining diacritic in its own span and prepends U+00A0
+         * (NBSP) to prevent rendering artefacts:
+         *   <span class="typeGood">ب</span><span class="typeMissed">&nbsp;َ</span>...
+         * constructLetters previously read .innerHTML, which gave the literal entity string
+         * "&nbsp;" rather than the NBSP+harakat characters, contaminating full_answer.
+         * It now uses .textContent and strips U+00A0 before Unicode combining marks (p{M}),
+         * correctly reconstructing the answer as بَطِّيخ.
+         *
+         * User types: بطيخ  (no harakat)
+         * Answer is : بَطِّيخ  (with harakat)
+         * Expected result: All green (harakat stripped from both sides when ignore_accents)
+         */
+
+        sessionStorage.setItem('stf_typedInput', 'بطيخ');
+        document.body.innerHTML = f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">ب</span>
+                <span class="typeMissed">-</span>
+                <span class="typeGood">ط</span>
+                <span class="typeMissed">--</span>
+                <span class="typeGood">يخ</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeGood">ب</span>
+                <span class="typeMissed">&nbsp;َ</span>
+                <span class="typeGood">ط</span>
+                <span class="typeMissed">&nbsp;ِّ</span>
+                <span class="typeGood">يخ</span>
+            </code>`);
+
+        compareInputToAnswer(addon_config);
+
+        // All green: harakat in the answer should be ignored, no typeBad or typeMissed.
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+                <code id="typeans">
+                    <span class="typeGood">بَطِّيخ</span>
+                </code>
+            `),
+        );
+    });
+
+    it('Ignore Arabic diacritics - partial match slices original answer correctly', () => {
+        /**
+         * Regression: When ignore_accents is on the diff runs on the normalized answer, so
+         * diff part lengths are in normalized (no-harakat) codepoints.  Previously the code
+         * used those lengths directly to slice full_answer (which still contains harakat),
+         * producing wrong spans: e.g. for answer بَطِّيخ a 3-char diff part would slice
+         * full_answer[0:3] = 'بَط' instead of the correct 'بَطِّي'.
+         * The normToOrig mapping now translates normalized positions → original positions.
+         *
+         * User types: بطي   (3 base letters, no harakat)
+         * Answer is : بَطِّيخ (4 base letters + harakat)
+         * Expected: entry shows typeGood 'بطي' + typeMissed '-'
+         *           answer shows typeGood 'بَطِّي' + typeBad 'خ'
+         */
+
+        sessionStorage.setItem('stf_typedInput', 'بطي');
+        document.body.innerHTML = f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">ب</span>
+                <span class="typeMissed">-</span>
+                <span class="typeGood">ط</span>
+                <span class="typeMissed">--</span>
+                <span class="typeGood">ي</span>
+                <span class="typeMissed">-</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeGood">ب</span>
+                <span class="typeMissed">&nbsp;َ</span>
+                <span class="typeGood">ط</span>
+                <span class="typeMissed">&nbsp;ِّ</span>
+                <span class="typeGood">يخ</span>
+            </code>`);
+
+        compareInputToAnswer(addon_config);
+
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+                <code id="typeans">
+                    <span class="typeGood">بطي</span>
+                    <span class="typeMissed">-</span>
+                        <br><span id="typearrow">⇩</span><br>
+                    <span class="typeGood">بَطِّي</span>
+                    <span class="typeBad">خ</span>
+                </code>
+            `),
+        );
+    });
 });
 
 describe('ignore_punctuations tests', () => {
