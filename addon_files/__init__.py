@@ -90,11 +90,24 @@ def on_addons_dialog_did_change_selected_addon(dialog: AddonsDialog, addon: Addo
     if not mw or not mw.col:
         return
 
-    if g.__addon_config__ and g.__addon_config__.get("enabled") != mw.addonManager.isEnabled(
-        g.__addon_id__
-    ):
+    is_enabled = mw.addonManager.isEnabled(g.__addon_id__)
+
+    # g.__addon_config__["enabled"] serves as the cached previous enabled state.
+    # This hook fires on every addon *selection* in the dialog, not only on toggle,
+    # so we compare against the cached value to detect an actual state change.
+    #
+    # The "enabled" flag is also written to the JSON config file consumed by the
+    # JS on AnkiDroid/AnkiMobile, where the addon manager doesn't exist. That way,
+    # disabling on desktop propagates to mobile via the synced config file.
+    if g.__addon_config__ and g.__addon_config__.get("enabled") != is_enabled:
         g.__addon_config__, g.__config_timestamp__ = updateConfigFile()
-        inspectAllNoteTypes()
+
+        if is_enabled:
+            # Addon was just enabled: inject/update script tags in all templates
+            inspectAllNoteTypes()
+        else:
+            # Addon was just disabled: remove script tags from all templates
+            inspectAllNoteTypes("uninstall")
 
 
 gui_hooks.addon_config_editor_will_update_json.append(on_config_save)
