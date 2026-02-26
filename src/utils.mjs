@@ -34,9 +34,9 @@ function compareInputToAnswer(addon_config) {
 
     const comparison_area = document.querySelector(typeAreaSelector);
 
-    // Prefer the raw input captured on the front template (avoids HTML-entity / trim issues from span reconstruction).
-    // Falls back to reconstructing from Anki's comparison spans if sessionStorage isn't available.
-    const full_entry = sessionStorage.getItem('stf_typedInput') ?? constructLetters(entrySpans);
+    // Prefer the raw input captured on the front template (avoids issues from span reconstruction post-comparison).
+    // Falls back to reconstructing from Anki's comparison spans if sessionStorage is missing.
+    const full_entry = sessionStorage.getItem('stf_typedInput')?.trim() ?? constructLetters(entrySpans);
     const full_answer = constructLetters(answerSpans);
 
     const diffCharsOpts = addon_config.ignore_case ? { ignoreCase: true } : {};
@@ -129,7 +129,7 @@ function compareInputToAnswer(addon_config) {
         // diff.length === 1 means that the input is exactly the same as the answer, only case different.
         //      in this case, remove the entry and ↓ and leave the answer marked green!
         answerSpans.forEach((span) => span.setAttribute('class', 'typeGood'));
-        comparison_area.innerHTML = answerSpans.map((elem) => elem.outerHTML).join('');
+        comparison_area.innerHTML = mergeConsecutiveSpans(answerSpans.map((elem) => elem.outerHTML).join(''));
     } else {
         // If they're not same, then reconstruct the entry and answer spans with the new classes based on the diff.
 
@@ -199,12 +199,37 @@ function compareInputToAnswer(addon_config) {
 
         if (recon_answerSpans.every((span) => span.includes('typeGood'))) {
             // if answer only has typeGood spans, then we want to only show the answer.
-            comparison_area.innerHTML = recon_answerSpans.join('');
+            comparison_area.innerHTML = mergeConsecutiveSpans(recon_answerSpans.join(''));
         } else {
             // else display the new spans in the comparison area.
-            comparison_area.innerHTML = `${recon_entrySpans.join('')}<br><span id="typearrow">⇩</span><br>${recon_answerSpans.join('')}`;
+            const mergedEntry = mergeConsecutiveSpans(recon_entrySpans.join(''));
+            const mergedAnswer = mergeConsecutiveSpans(recon_answerSpans.join(''));
+            comparison_area.innerHTML = `${mergedEntry}<br><span id="typearrow">⇩</span><br>${mergedAnswer}`;
         }
     }
+}
+
+/**
+ * Merges consecutive <span class="typeXxx"> elements of the same class into a single span.
+ * For example, two adjacent typeGood spans become one, two adjacent typeBad spans become one, etc.
+ *
+ * @param {string} html - HTML string containing <span class="typeXxx"> elements.
+ * @returns {string} - The same HTML but with same-class adjacent spans joined.
+ */
+function mergeConsecutiveSpans(html) {
+    const result = [];
+    const re = /<span class="(type\w+)">([\s\S]*?)<\/span>/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+        const [, cls, text] = m;
+        const last = result[result.length - 1];
+        if (last && last.cls === cls) {
+            last.text += text;
+        } else {
+            result.push({ cls, text });
+        }
+    }
+    return result.map(({ cls, text }) => `<span class="${cls}">${text}</span>`).join('');
 }
 
 export { compareInputToAnswer };

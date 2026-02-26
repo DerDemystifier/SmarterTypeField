@@ -17,6 +17,7 @@ describe('ignore_case tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
+        sessionStorage.removeItem('stf_typedInput');
     });
 
     it('detects missing letter', () => {
@@ -29,16 +30,7 @@ describe('ignore_case tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeGood">a</span>
-                <span class="typeBad">B</span>
-                <span class="typeGood">cde</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">a</span>
-                <span class="typeMissed">bc</span>
-                <span class="typeGood">cde</span>
-            </code>`);
+        document.body.innerHTML = b('aBcde', 'abccde');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -68,18 +60,7 @@ describe('ignore_case tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeMissed">--</span>
-            <span class="typeGood">ykjav</span>
-            <span class="typeBad">i</span>
-            <span class="typeGood">k</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeMissed">Re</span>
-            <span class="typeGood">ykjav</span>
-            <span class="typeMissed">í</span>
-            <span class="typeGood">k</span>
-        </code>`);
+        document.body.innerHTML = b('ykjavik', 'Reykjavík');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -88,8 +69,7 @@ describe('ignore_case tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeMissed">-</span>
-                <span class="typeMissed">-</span>
+                <span class="typeMissed">--</span>
                 <span class="typeGood">ykjav</span>
                 <span class="typeBad">i</span>
                 <span class="typeGood">k</span>
@@ -111,14 +91,7 @@ describe('ignore_case tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">Indi</span>
-            <span class="typeMissed">-</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeGood">Indi</span>
-            <span class="typeBad">-</span>
-        </code>`);
+        document.body.innerHTML = b('Indi', 'Indi-');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -146,14 +119,7 @@ describe('ignore_case tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeBad">A</span>
-            <span class="typeGood">-bc</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeMissed">a</span>
-            <span class="typeGood">-bc</span>
-        </code>`);
+        document.body.innerHTML = b('A-bc', 'a-bc');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -162,8 +128,7 @@ describe('ignore_case tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeGood">a</span>
-                <span class="typeGood">-bc</span>
+                <span class="typeGood">a-bc</span>
             </code>`),
         );
     });
@@ -208,28 +173,20 @@ describe('ignore_accents tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
+        sessionStorage.removeItem('stf_typedInput');
     });
 
     it('Ignore Accents - Basic Latin', () => {
         /**
          * Issue: Case when there's an accent mismatch.
-         * User types: Reykjavik
-         * Answer is : Reykjavík
+         * User types: Reykjavic
+         * Answer is : Reykjavìc
          * Vanilla result: ì is marked as missed
          * Expected result: All green
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">Reykjav</span>
-            <span class="typeBad">i</span>
-            <span class="typeGood">c</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeGood">Reykjav</span>
-            <span class="typeMissed">ì</span>
-            <span class="typeGood">c</span>
-        </code>`);
+        document.body.innerHTML = b('Reykjavic', 'Reykjavìc');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -238,9 +195,7 @@ describe('ignore_accents tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
         <code id="typeans">
-            <span class="typeGood">Reykjav</span>
-            <span class="typeGood">ì</span>
-            <span class="typeGood">c</span>
+            <span class="typeGood">Reykjavìc</span>
         </code>`),
         );
     });
@@ -255,16 +210,7 @@ describe('ignore_accents tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">na</span>
-            <span class="typeBad">i</span>
-            <span class="typeGood">ve</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeGood">na</span>
-            <span class="typeMissed">ï</span>
-            <span class="typeGood">ve</span>
-        </code>`);
+        document.body.innerHTML = b('naive', 'naïve');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -273,9 +219,7 @@ describe('ignore_accents tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
         <code id="typeans">
-            <span class="typeGood">na</span>
-            <span class="typeGood">ï</span>
-            <span class="typeGood">ve</span>
+            <span class="typeGood">naïve</span>
         </code>`),
         );
     });
@@ -292,14 +236,7 @@ describe('ignore_accents tests', () => {
         addon_config.ignore_case = true;
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeBad">É</span>
-            <span class="typeGood">xample</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeMissed">e</span>
-            <span class="typeGood">xample</span>
-        </code>`);
+        document.body.innerHTML = b('Éxample', 'example');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -308,8 +245,7 @@ describe('ignore_accents tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
         <code id="typeans">
-            <span class="typeGood">e</span>
-            <span class="typeGood">xample</span>
+            <span class="typeGood">example</span>
         </code>`),
         );
     });
@@ -324,18 +260,7 @@ describe('ignore_accents tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeBad">e</span>
-            <span class="typeGood">l</span>
-            <span class="typeBad">e</span>
-            <span class="typeGood">ve</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeMissed">é</span>
-            <span class="typeGood">l</span>
-            <span class="typeMissed">è</span>
-            <span class="typeGood">ve</span>
-        </code>`);
+        document.body.innerHTML = b('eleve', 'élève');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -344,10 +269,7 @@ describe('ignore_accents tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
         <code id="typeans">
-            <span class="typeGood">é</span>
-            <span class="typeGood">l</span>
-            <span class="typeGood">è</span>
-            <span class="typeGood">ve</span>
+            <span class="typeGood">élève</span>
         </code>`),
         );
     });
@@ -392,15 +314,7 @@ describe('ignore_accents tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
         <code id="typeans">
-            <span class="typeGood">T</span>
-            <span class="typeGood">ô</span>
-            <span class="typeGood">i th</span>
-            <span class="typeGood">í</span>
-            <span class="typeGood">ch l</span>
-            <span class="typeGood">ậ</span>
-            <span class="typeGood">p tr</span>
-            <span class="typeGood">ì</span>
-            <span class="typeGood">nh</span>
+            <span class="typeGood">Tôi thích lập trình</span>
         </code>`),
         );
     });
@@ -413,6 +327,7 @@ describe('ignore_punctuations tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
+        sessionStorage.removeItem('stf_typedInput');
     });
 
     it('Ignores Extended Punctuation', () => {
@@ -425,14 +340,7 @@ describe('ignore_punctuations tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">Good morning</span>
-            <span class="typeMissed">----</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeGood">Good morning</span>
-            <span class="typeMissed">...!</span>
-        </code>`);
+        document.body.innerHTML = b('Good morning', 'Good morning...!');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -441,8 +349,7 @@ describe('ignore_punctuations tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeGood">Good morning</span>
-                <span class="typeGood">...!</span>
+                <span class="typeGood">Good morning...!</span>
             </code>`),
         );
     });
@@ -457,14 +364,7 @@ describe('ignore_punctuations tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeGood">!</span>
-            <span class="typeMissed">--</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeGood">!</span>
-            <span class="typeMissed">!!</span>
-        </code>`);
+        document.body.innerHTML = b('!', '!!!');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -473,8 +373,7 @@ describe('ignore_punctuations tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeGood">!</span>
-                <span class="typeGood">!!</span>
+                <span class="typeGood">!!!</span>
             </code>`),
         );
     });
@@ -491,25 +390,7 @@ describe('ignore_punctuations tests', () => {
         addon_config.ignore_accents = true;
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeMissed">-</span>
-                <span class="typeGood">C</span>
-                <span class="typeBad">o</span>
-                <span class="typeGood">mo est</span>
-                <span class="typeBad">a</span>
-                <span class="typeGood">s</span>
-                <span class="typeMissed">-</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeMissed">¿</span>
-                <span class="typeGood">C</span>
-                <span class="typeMissed">ó</span>
-                <span class="typeGood">mo est</span>
-                <span class="typeMissed">á</span>
-                <span class="typeGood">s</span>
-                <span class="typeMissed">?</span>
-            </code>
-        `);
+        document.body.innerHTML = b('Como estas', '¿Cómo estás?');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -518,9 +399,7 @@ describe('ignore_punctuations tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeGood">¿</span>
-                <span class="typeGood">Cómo estás</span>
-                <span class="typeGood">?</span>
+                <span class="typeGood">¿Cómo estás?</span>
             </code>`),
         );
     });
@@ -535,20 +414,7 @@ describe('ignore_punctuations tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-        <code id="typeans">
-            <span class="typeMissed">-</span>
-            <span class="typeGood">It</span>
-            <span class="typeMissed">-</span>
-            <span class="typeGood">s a test</span>
-            <span class="typeMissed">--</span>
-                <br><span id="typearrow">↓</span><br>
-            <span class="typeMissed">"</span>
-            <span class="typeGood">It</span>
-            <span class="typeMissed">'</span>
-            <span class="typeGood">s a test</span>
-            <span class="typeMissed">."</span>
-        </code>`);
+        document.body.innerHTML = b('Its a test', '"It\'s a test."');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -557,23 +423,19 @@ describe('ignore_punctuations tests', () => {
         expect(document.body.innerHTML).toEqual(
             f(/*html*/ `
             <code id="typeans">
-                <span class="typeGood">"</span>
-                <span class="typeGood">It</span>
-                <span class="typeGood">'</span>
-                <span class="typeGood">s a test</span>
-                <span class="typeGood">."</span>
+                <span class="typeGood">"It's a test."</span>
             </code>`),
         );
     });
 
-    it("ignores punctuations when ignore_accents is enabled", () => {
+    it('ignores punctuations when ignore_accents is enabled', () => {
         /**
          * Issue: Case when answer contains apostrophes and quotes.
          * User types: ハス停はここてすか?
          * Answer is : バス停はここですか
          * Vanilla result: with :nc modifier on, it ignores accents and marks punctuation as bad.
          * Expected result: no typeBad, all green (punctuation is ignored together with accents when ignore_accents is enabled)
-        */
+         */
 
         addon_config.ignore_accents = true;
 
@@ -602,6 +464,7 @@ describe('ignore_extra_words tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
+        sessionStorage.removeItem('stf_typedInput');
     });
 
     it('accepts typed sentence that contains the answer', () => {
@@ -614,15 +477,7 @@ describe('ignore_extra_words tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeBad">New coffee shops have </span>
-                <span class="typeGood">sprung up</span>
-                <span class="typeBad"> all over the neighborhood</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">sprung up</span>
-            </code>
-        `);
+        document.body.innerHTML = b('New coffee shops have sprung up all over the neighborhood', 'sprung up');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -647,17 +502,7 @@ describe('ignore_extra_words tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeGood">cu</span>
-                <span class="typeMissed">-</span>
-                <span class="typeGood">ning</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">cu</span>
-                <span class="typeMissed">n</span>
-                <span class="typeGood">ning</span>
-            </code>
-        `);
+        document.body.innerHTML = b('A cuning ploy', 'cunning');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -684,14 +529,7 @@ describe('ignore_extra_words tests', () => {
         addon_config.ignore_case = true;
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeBad">Too Far Into The Weeds</span>
-                <span class="typeBad">, she lost the big picture.</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">too far into the weeds</span>
-            </code>
-        `);
+        document.body.innerHTML = b('Too Far Into The Weeds, she lost the big picture.', 'too far into the weeds');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -716,17 +554,7 @@ describe('ignore_extra_words tests', () => {
          */
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeGood">spr</span>
-                <span class="typeBad">i</span>
-                <span class="typeGood">ng up</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">spr</span>
-                <span class="typeMissed">u</span>
-                <span class="typeGood">ng up</span>
-            </code>
-        `);
+        document.body.innerHTML = b('spring up', 'sprung up');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -753,15 +581,7 @@ describe('ignore_extra_words tests', () => {
         addon_config.ignore_extra_words = false;
 
         // Setup
-        document.body.innerHTML = f(/*html*/ `
-            <code id="typeans">
-                <span class="typeBad">New coffee shops have </span>
-                <span class="typeGood">sprung up</span>
-                <span class="typeBad"> all over</span>
-                    <br><span id="typearrow">↓</span><br>
-                <span class="typeGood">sprung up</span>
-            </code>
-        `);
+        document.body.innerHTML = b('New coffee shops have sprung up all over', 'sprung up');
 
         // Exercise
         compareInputToAnswer(addon_config);
@@ -778,3 +598,26 @@ describe('ignore_extra_words tests', () => {
  * @returns {string} - The processed string with no whitespace between tags and trimmed.
  */
 const f = (s) => s.replace(/>\s+</g, '><').trim();
+
+/**
+ * Builds the standard Anki type-answer HTML for a fully-wrong comparison:
+ * input in a single typeBad span, answer in a single typeMissed span.
+ * Also stores the raw input in sessionStorage so compareInputToAnswer uses it
+ * directly rather than reconstructing from partially-matched spans.
+ *
+ * @param {string} input  - What the user typed.
+ * @param {string} answer - The correct answer.
+ * @returns {string} - Processed HTML string (whitespace collapsed via f()).
+ */
+const b = (input, answer) => {
+    // Pass input in sessionStorage to mimic the front template's capture of raw input, so compareInputToAnswer uses it directly rather than reconstructing from partially-matched spans.
+    sessionStorage.setItem('stf_typedInput', input);
+
+    return f(/*html*/ `
+        <code id="typeans">
+            <span class="typeBad">${input}</span>
+                <br><span id="typearrow">↓</span><br>
+            <span class="typeMissed">${answer}</span>
+        </code>
+    `);
+};
