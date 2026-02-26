@@ -142,21 +142,27 @@ def inspectNoteType(note_type: Any, intent: str) -> None:
         question_template = card_type["qfmt"]  # Question template
         answer_template = card_type["afmt"]  # Answer template
 
+        has_script_tag = script_tag in answer_template or script_tag in question_template
+
         if (
-            script_tag in answer_template
+            has_script_tag
             and not type_pattern.search(question_template)  # or answer_template, no matter
         ) or intent == "uninstall":
             # if there's no type field anymore in the card or the user wants to uninstall it
 
             updated = True
+            card_type["qfmt"] = removeScriptTag(card_type["qfmt"])
             card_type["afmt"] = removeScriptTag(card_type["afmt"])
         elif type_pattern.search(question_template) and (
             g.__version__ not in answer_template
+            or g.__version__ not in question_template
             or (g.__config_timestamp__ not in answer_template if g.__config_timestamp__ else True)
+            or (g.__config_timestamp__ not in question_template if g.__config_timestamp__ else True)
         ):
             # Otherwise, if the type field is present but the script tag is not present or is outdated
 
             updated = True
+            card_type["qfmt"] = addScriptTag(card_type["qfmt"], addon_script_tag())
             card_type["afmt"] = addScriptTag(card_type["afmt"], addon_script_tag())
 
     if updated:

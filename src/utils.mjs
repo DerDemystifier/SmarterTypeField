@@ -34,7 +34,9 @@ function compareInputToAnswer(addon_config) {
 
     const comparison_area = document.querySelector(typeAreaSelector);
 
-    const full_entry = constructLetters(entrySpans);
+    // Prefer the raw input captured on the front template (avoids HTML-entity / trim issues from span reconstruction).
+    // Falls back to reconstructing from Anki's comparison spans if sessionStorage isn't available.
+    const full_entry = sessionStorage.getItem('stf_typedInput') ?? constructLetters(entrySpans);
     const full_answer = constructLetters(answerSpans);
 
     const diffCharsOpts = addon_config.ignore_case ? { ignoreCase: true } : {};
