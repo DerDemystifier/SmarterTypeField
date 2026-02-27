@@ -4,8 +4,9 @@ import re  # Added import for regex
 import shutil
 from typing import Any, Dict
 
+import anki.errors
 from aqt import mw
-from aqt.utils import showInfo
+from aqt.utils import showInfo, tooltip
 
 from . import globals as g
 
@@ -167,7 +168,17 @@ def inspectNoteType(note_type: Any, intent: str) -> None:
 
     if updated:
         # Update the model in the collection
-        mw.col.models.save(note_type)
+        try:
+            mw.col.models.save(note_type)
+        except anki.errors.CardTypeError:
+            # The note type has conflicting card templates (e.g. two identical front sides).
+            # This is a pre-existing problem unrelated to our changes; skip and warn the user.
+            tooltip(
+                f"SmarterTypeField: Note type '{note_type['name']}' has conflicting card templates "
+                "(two templates share the same front side). Please fix this in Anki's note type editor.",
+                period=8000,
+            )
+            pass
 
 
 def inspectAllNoteTypes(intent: str = "install") -> None:

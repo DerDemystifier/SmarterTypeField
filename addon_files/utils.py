@@ -61,7 +61,7 @@ def removeScriptTag(template: str) -> str:
         "<script role='ignoreCase'.+script>", "", template, flags=re.IGNORECASE
     )  # Remove this line in later versions
     template = re.sub("<script role='smarterTypeField'.+script>", "", template, flags=re.IGNORECASE)
-    template = template.strip()
+    template = template.rstrip()
     return template
 
 
