@@ -465,6 +465,53 @@ describe('ignore_accents tests', () => {
             `),
         );
     });
+
+    it('Ignore Hebrew niqqud (vowel points)', () => {
+        /**
+         * Issue: Hebrew text with niqqud (vowel diacritics, U+05B0–U+05C7) should match
+         * unvowelled Hebrew when ignore_accents is on.
+         * User types: שלום  (no niqqud)
+         * Answer is : שָׁלוֹם  (with qamats U+05B8, shin-dot U+05C1, holam U+05B9)
+         * Expected result: All green
+         */
+
+        // Setup
+        document.body.innerHTML = b('שלום', 'שָׁלוֹם');
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">שָׁלוֹם</span>
+            </code>`),
+        );
+    });
+
+    it('Ignore Hebrew cantillation marks (teamim)', () => {
+        /**
+         * Issue: Hebrew cantillation marks (teamim, U+0591–U+05AF) should also be ignored.
+         * User types: בראשית  (no teamim)
+         * Answer is : בְּרֵאשִׁית (with niqqud and teamim)
+         * Expected result: All green
+         */
+
+        // Setup
+        document.body.innerHTML = b('בראשית', 'בְּרֵאשִׁית');
+
+        // Exercise
+        compareInputToAnswer(addon_config);
+
+        // Verify
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+            <code id="typeans">
+                <span class="typeGood">בְּרֵאשִׁית</span>
+            </code>`),
+        );
+    });
 });
 
 describe('ignore_punctuations tests', () => {

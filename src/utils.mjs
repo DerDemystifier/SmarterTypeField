@@ -48,11 +48,14 @@ function compareInputToAnswer(addon_config) {
     let normalized_answer = full_answer;
 
     if (addon_config.ignore_accents) {
+        // \p{M} covers all Unicode combining/mark characters (Mn, Mc, Me) including:
         // U+0300-U+036F: Latin/IPA combining diacritical marks
+        // U+0591-U+05AF: Hebrew cantillation marks (teamim)
+        // U+05B0-U+05C7: Hebrew niqqud (vowel points, dagesh, shin/sin dots, etc.)
         // U+3099-U+309A: Japanese combining dakuten/handakuten (e.g. バ NFD = ハ + U+3099)
         // U+064b-U+065f: Arabic diacritics (harakat: fatha, kasra, shadda, sukun, etc.)
-        normalized_entry = full_entry.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/g, '');
-        normalized_answer = full_answer.normalize('NFD').replace(/[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/g, '');
+        normalized_entry = full_entry.normalize('NFD').replace(/\p{M}/gu, '');
+        normalized_answer = full_answer.normalize('NFD').replace(/\p{M}/gu, '');
     }
 
     console.log('Normalized entry:', normalized_entry);
@@ -166,7 +169,7 @@ function compareInputToAnswer(addon_config) {
          */
         let normToOrig = null;
         if (addon_config.ignore_accents) {
-            const combiningRe = /[\u0300-\u036f\u3099-\u309a\u064b-\u065f]/u;
+            const combiningRe = /\p{M}/u;
             const positions = [];
             for (let i = 0; i < full_answer.length; i++) {
                 if (!combiningRe.test(full_answer[i])) {
