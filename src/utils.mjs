@@ -17,26 +17,46 @@ import { isPunctuation, hasPunctuation, last_item_includes, constructLetters, ex
  * In previous versions, I used to use my own algo for comparison, but as it started to get more complex, I decided to use a library for it. Now I use the diffChars() function from the jsdiff library, which uses state of the art algorithms to compare strings. It returns an array of objects, each object has a value and a boolean property called added or removed. If added is true, then the value is an addition, if removed is true, then the value is a deletion. If both are false, then it's a common part.
  */
 function compareInputToAnswer(addon_config) {
-    // if there's no arrow, that means there's no comparison, which means the user hasn't typed anything or got the correct answer.
-    if (!document.querySelector('span#typearrow')) return;
+    const comparisonAreas = [...document.querySelectorAll('code#typeans')];
+    const capturedInputs = readCapturedInputs();
 
-    // Get all span parts of both entry and answer to be destructed
-    const typeAreaSelector = 'code#typeans';
-    const typesSpansSelector = `${typeAreaSelector} > span[class^="type"]`;
-    // Selects only answer spans
-    const answerSpansSelector = `${typeAreaSelector} br ~ span[class^="type"]`;
+    comparisonAreas.forEach((comparison_area, index) => {
+        // If there's no arrow, that means there's no comparison, which means the user hasn't typed anything or got the correct answer.
+        if (!comparison_area.querySelector('span#typearrow')) return;
 
-    // Update the spans array after destruction
-    const typesSpans = [...document.querySelectorAll(typesSpansSelector)];
-    const answerSpans = [...document.querySelectorAll(answerSpansSelector)];
+        compareSingleInputToAnswer(addon_config, comparison_area, capturedInputs[index]);
+    });
+}
+
+function readCapturedInputs() {
+    const capturedInputs = sessionStorage.getItem('stf_typedInputs');
+    if (capturedInputs) {
+        try {
+            const parsedInputs = JSON.parse(capturedInputs);
+            if (Array.isArray(parsedInputs)) return parsedInputs;
+        } catch {
+            // Fall back to reconstructing the input from Anki's comparison spans.
+        }
+    }
+
+    return [];
+}
+
+function compareSingleInputToAnswer(addon_config, comparison_area, capturedInput) {
+    // Get all span parts of both entry and answer to be destructed.
+    const childElements = [...comparison_area.children];
+    const typesSpans = childElements.filter(
+        (element) => element.tagName === 'SPAN' && element.className.startsWith('type'),
+    );
+    const separatorIndex = childElements.findIndex((element) => element.tagName === 'BR');
+    // Select only answer spans, which are the type spans after the comparison separator.
+    const answerSpans = typesSpans.filter((span) => childElements.indexOf(span) > separatorIndex);
     // entrySpans contains spans of the entry, which are (All_Spans - Answer_Spans). It also excludes typeMissed spans from Anki comparison to keep raw user input.
     const entrySpans = typesSpans.filter((x) => !answerSpans.includes(x) && !x.classList.contains('typeMissed'));
 
-    const comparison_area = document.querySelector(typeAreaSelector);
-
     // Prefer the raw input captured on the front template (avoids issues from span reconstruction post-comparison).
     // Falls back to reconstructing from Anki's comparison spans if sessionStorage is missing.
-    const full_entry = sessionStorage.getItem('stf_typedInput')?.trim() ?? constructLetters(entrySpans);
+    const full_entry = typeof capturedInput === 'string' ? capturedInput.trim() : constructLetters(entrySpans);
     const full_answer = constructLetters(answerSpans);
     console.log('Full entry:', full_entry);
     console.log('Full answer:', full_answer);

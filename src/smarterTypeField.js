@@ -1,13 +1,24 @@
 import { compareInputToAnswer } from './utils.mjs';
 
-const typedInput = document.querySelector('input#typeans');
+const typedInputs = [...document.querySelectorAll('input#typeans')];
 
-if (typedInput) {
+if (typedInputs.length) {
     // Front template: capture the user's raw input before Anki processes it.
+    sessionStorage.setItem('stf_typedInputs', JSON.stringify(typedInputs.map((input) => input.value)));
 
-    // 'change' fires when the field loses focus / the user submits, which is right before Anki flips to the back.
-    typedInput.addEventListener('change', (e) => {
-        sessionStorage.setItem('stf_typedInput', e.target.value);
+    // 'change' fires when a field loses focus / the user submits, which is right before Anki flips to the back.
+    typedInputs.forEach((typedInput, index) => {
+        typedInput.addEventListener('change', (e) => {
+            let capturedInputs = [];
+            try {
+                const storedInputs = JSON.parse(sessionStorage.getItem('stf_typedInputs') || '[]');
+                if (Array.isArray(storedInputs)) capturedInputs = storedInputs;
+            } catch {
+                // Reinitialize the capture if sessionStorage contains malformed data.
+            }
+            capturedInputs[index] = e.target.value;
+            sessionStorage.setItem('stf_typedInputs', JSON.stringify(capturedInputs));
+        });
     });
 } else {
     // Back template: run the comparison.

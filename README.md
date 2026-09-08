@@ -41,7 +41,7 @@ Simply install [the addon](https://ankiweb.net/shared/info/1371444066) on your A
 > 1.  Check the 'Front Template' of your card to see if the `{{type:}}` field is present and the script tag is added. It looks like this:
 > ![](docs/images/script_tag.png)
 >
-> > Remember that Anki only allows one `{{type:}}` field per card. You cannot have multiple `{{type:}}` fields.
+> Multiple independently rendered `{{type:}}` fields are supported. Each field is compared with the corresponding answer in page order.
 >
 > 1.  If the script tag is present and it still doesn't work as expected, please open a support ticket above, labelled _'Issues'_; If on AnkiWeb, click _'Contact Author'_.
 

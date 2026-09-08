@@ -17,7 +17,7 @@ describe('ignore_case tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
-        sessionStorage.removeItem('stf_typedInput');
+        sessionStorage.removeItem('stf_typedInputs');
     });
 
     it('matches when only case differs', () => {
@@ -196,7 +196,7 @@ describe('ignore_accents tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
-        sessionStorage.removeItem('stf_typedInput');
+        sessionStorage.removeItem('stf_typedInputs');
     });
 
     it('Ignore Accents - Basic Latin', () => {
@@ -358,7 +358,7 @@ describe('ignore_accents tests', () => {
          * Expected result: All green (harakat stripped from both sides when ignore_accents)
          */
 
-        sessionStorage.setItem('stf_typedInput', 'بطيخ');
+        sessionStorage.setItem('stf_typedInputs', JSON.stringify(['بطيخ']));
         document.body.innerHTML = f(/*html*/ `
             <code id="typeans">
                 <span class="typeGood">ب</span>
@@ -399,7 +399,7 @@ describe('ignore_accents tests', () => {
         const combiningDakuten = '\u3099';
         const answerWithDakuten = `\u30CF${combiningDakuten}\u30B9\u505C`; // ハ+dakuten+ス+停
 
-        sessionStorage.setItem('stf_typedInput', 'ハス停');
+        sessionStorage.setItem('stf_typedInputs', JSON.stringify(['ハス停']));
         document.body.innerHTML = f(/*html*/ `
             <code id="typeans">
                 <span class="typeBad">ハス停</span>
@@ -434,7 +434,7 @@ describe('ignore_accents tests', () => {
          *           answer shows typeGood 'بَطِّي' + typeBad 'خ'
          */
 
-        sessionStorage.setItem('stf_typedInput', 'بطي');
+        sessionStorage.setItem('stf_typedInputs', JSON.stringify(['بطي']));
         document.body.innerHTML = f(/*html*/ `
             <code id="typeans">
                 <span class="typeGood">ب</span>
@@ -521,7 +521,7 @@ describe('ignore_punctuations tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
-        sessionStorage.removeItem('stf_typedInput');
+        sessionStorage.removeItem('stf_typedInputs');
     });
 
     it('Ignores Extended Punctuation', () => {
@@ -658,7 +658,7 @@ describe('ignore_extra_words tests', () => {
 
     afterEach(() => {
         addon_config = { ...defaultAddonConfig };
-        sessionStorage.removeItem('stf_typedInput');
+        sessionStorage.removeItem('stf_typedInputs');
     });
 
     it('accepts typed sentence that contains the answer', () => {
@@ -787,6 +787,41 @@ describe('ignore_extra_words tests', () => {
     });
 });
 
+describe('multiple type fields tests', () => {
+    afterEach(() => {
+        sessionStorage.removeItem('stf_typedInputs');
+    });
+
+    it('compares every type-answer block independently', () => {
+        sessionStorage.setItem('stf_typedInputs', JSON.stringify(['HELLO', 'WORLD']));
+        document.body.innerHTML = f(/*html*/ `
+            <code id="typeans">
+                <span class="typeBad">HELLO</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeMissed">hello</span>
+            </code>
+            <code id="typeans">
+                <span class="typeBad">WORLD</span>
+                    <br><span id="typearrow">↓</span><br>
+                <span class="typeMissed">world</span>
+            </code>
+        `);
+
+        compareInputToAnswer({ ...defaultAddonConfig, ignore_case: true });
+
+        expect(document.body.innerHTML).toEqual(
+            f(/*html*/ `
+                <code id="typeans">
+                    <span class="typeGood">hello</span>
+                </code>
+                <code id="typeans">
+                    <span class="typeGood">world</span>
+                </code>
+            `),
+        );
+    });
+});
+
 /**
  * Removes whitespace between HTML tags and trims the string.
  *
@@ -806,8 +841,8 @@ const f = (s) => s.replace(/>\s+</g, '><').trim();
  * @returns {string} - Processed HTML string (whitespace collapsed via f()).
  */
 const b = (input, answer) => {
-    // Pass input in sessionStorage to mimic the front template's capture of raw input, so compareInputToAnswer uses it directly rather than reconstructing from partially-matched spans.
-    sessionStorage.setItem('stf_typedInput', input);
+    // Pass the input array in sessionStorage to mimic the front template's capture of raw input.
+    sessionStorage.setItem('stf_typedInputs', JSON.stringify([input]));
 
     // There's no need to split the input and answer into individual typeGood/typeBad/typeMissed spans since the input and answer are constructed fully before comparison anyway, so it's irrelevant and we can just wrap them in single typeBad/typeMissed spans respectively.
     return f(/*html*/ `

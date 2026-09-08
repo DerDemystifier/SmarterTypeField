@@ -1,6 +1,7 @@
 node_modules
 */__pycache__/
 */meta.json
-*-ignore-*
+_-*
 addon_files/CONFIG_TIMESTAMP
 .github/copilot-instructions.md
+addon_files/SmarterTypeField.ankiaddon
