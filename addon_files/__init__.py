@@ -1,14 +1,18 @@
-import json
 import os
 
-from anki.cards import Card
 from aqt import gui_hooks, mw
 from aqt.addons import AddonMeta, AddonsDialog
-from aqt.utils import showInfo
 
 from .config_GUI import open_config_dialog
 
-from .helpers import getConfig, inspectAllNoteTypes, on_config_save, setupAddon, updateConfigFile
+from .helpers import (
+    getConfig,
+    has_valid_config_file,
+    inspectAllNoteTypes,
+    on_config_save,
+    setupAddon,
+    updateConfigFile,
+)
 
 from . import globals as g
 
@@ -33,49 +37,22 @@ def startupCheck() -> None:
     g.media_collection_dir = mw.col.media.dir()
 
     # Check if either the it's a fresh install or a new version
-    if not all(
-        (
-            g.__config_timestamp__,  # __config_timestamp__ is None if there's no CONFIG_TIMESTAMP file found
-            os.path.exists(
-                os.path.join(g.media_collection_dir, f"_smarterTypeField.min{g.__version__}.js")
-            ),
-        )
+    js_path = os.path.join(g.media_collection_dir, f"_smarterTypeField.min{g.__version__}.js")
+    # A timestamp without its media JSON is not a valid installation. This
+    # check repairs stale CONFIG_TIMESTAMP files before templates are updated.
+    if (
+        not g.__config_timestamp__
+        or not os.path.exists(js_path)
+        or not has_valid_config_file()
     ):
         setupAddon()
 
-    g.__addon_config__ = getConfig()
+    g.__addon_config__, g.__config_timestamp__ = updateConfigFile(getConfig())
 
     # Call the function to insert the script tag
     inspectAllNoteTypes()
 
     mw.addonManager.setConfigAction(g.__addon_id__, open_config_dialog)
-
-
-@gui_hooks.card_will_show.append
-def inject_addon_config(html: str, card: Card, kind: str) -> str:
-    """
-    Can modify card text before review/preview.
-    """
-
-    # We need to inject the g.__addon_config__ into the card template so that the JS can access it
-    if not mw or not mw.col or not g.__addon_config__:
-        showInfo("An error occurred while injecting the addon configuration.")
-        return html
-
-    # kind is either "reviewQuestion" or "reviewAnswer"
-    if kind != "reviewAnswer":
-        return html
-
-    js_code = f"""
-        window.addon_config = {json.dumps(g.__addon_config__)};
-    """
-    # Wrap JS code in script tags
-    script_element = f"<script>{js_code}</script>"
-
-    # Prepend script to answer HTML
-    new_html = script_element + html
-
-    return new_html
 
 
 @gui_hooks.addons_dialog_did_change_selected_addon.append

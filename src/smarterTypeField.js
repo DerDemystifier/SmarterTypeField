@@ -12,15 +12,15 @@ if (typedInput) {
 } else {
     // Back template: run the comparison.
 
-    if (window.addon_config) {
-        if (window.addon_config.enabled) compareInputToAnswer(addon_config);
-    } else {
-        // Mobile fallback: On mobile (AnkiDroid/AnkiMobile), the Python addon doesn't run,
-        // so window.addon_config isn't injected. Instead, we fetch a pre-generated config file.
-        // The data-config attribute contains a timestamp for cache-busting the config file.
-        const script = document.currentScript;
-        const config_timestamp = script.getAttribute('data-config');
+    // The timestamped media JSON is the source of truth on both Desktop and
+    // mobile. Desktop must not inject a separate in-memory configuration that
+    // can hide a stale or missing synced file.
+    const script = document.currentScript;
+    const config_timestamp = script?.getAttribute('data-config');
 
+    if (!config_timestamp) {
+        console.error('SmarterTypeField: configuration timestamp is missing.');
+    } else {
         fetch(`_smarterTypeField.config${config_timestamp}.json`)
             .then((response) => {
                 if (!response.ok) {
@@ -32,10 +32,9 @@ if (typedInput) {
                 if (addon_config.enabled) compareInputToAnswer(addon_config);
             })
             .catch((error) => {
-                // Fallback: If config file isn't available, use hardcoded defaults
-                addon_config = { ignore_case: true, ignore_accents: false, ignore_punctuations: false };
-                compareInputToAnswer(addon_config);
-                console.error('There has been a problem with your fetch operation:', error);
+                // Do not silently use defaults: that would make a missing or
+                // stale synced JSON file look like a valid configuration.
+                console.error('SmarterTypeField: unable to load configuration:', error);
             });
     }
 }

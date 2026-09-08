@@ -1,8 +1,8 @@
 import json
 import os
-import re  # Added import for regex
+import re
 import shutil
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import anki.errors
 from aqt import mw
@@ -34,15 +34,55 @@ def addon_script_tag() -> str:
     return f"""<script role='smarterTypeField' src="_smarterTypeField.min{g.__version__}.js" data-config="{g.__config_timestamp__}"></script>"""
 
 
+def config_file_path(timestamp: Optional[str] = None) -> Optional[str]:
+    """Return the media path for a timestamped configuration file."""
+    timestamp = (timestamp or g.__config_timestamp__ or "").strip()
+    if not timestamp or not g.media_collection_dir:
+        return None
+    return os.path.join(g.media_collection_dir, f"_smarterTypeField.config{timestamp}.json")
+
+
+def _read_config_file(path: Optional[str]) -> Optional[dict[str, Any]]:
+    """Read a valid JSON object from ``path``."""
+    if not path:
+        return None
+
+    try:
+        config = json.loads(readFile(path) or "")
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    return config if isinstance(config, dict) and config else None
+
+
+def has_valid_config_file(timestamp: Optional[str] = None) -> bool:
+    """Return whether the timestamped media config exists and contains an object."""
+    return _read_config_file(config_file_path(timestamp)) is not None
+
+
+def latest_config_timestamp() -> Optional[str]:
+    """Find the newest valid media config, independent of the local pointer."""
+    if not g.media_collection_dir or not os.path.isdir(g.media_collection_dir):
+        return None
+
+    prefix = "_smarterTypeField.config"
+    suffix = ".json"
+    candidates = []
+    for filename in os.listdir(g.media_collection_dir):
+        if filename.startswith(prefix) and filename.endswith(suffix):
+            timestamp = filename[len(prefix) : -len(suffix)]
+            if timestamp and _read_config_file(os.path.join(g.media_collection_dir, filename)):
+                candidates.append(timestamp)
+
+    return max(candidates) if candidates else None
+
+
 def getConfig() -> dict[str, Any]:
     """
     Retrieve the configuration for the addon.
-    This function fetches the configuration settings for the addon from Anki's addon manager.
-    If the addon manager is not available, it returns an empty dictionary.
-
-    The configuration is loaded from the addon's configuration file (config.json) if it is not already present
-    in the addon manager.
-    Additionally, it updates the configuration with the enabled status of the addon.
+    The timestamped JSON in the media folder is authoritative because it is
+    synchronized to mobile clients. The addon manager is only a first-run
+    fallback when no valid media config exists.
 
     Returns:
         dict[str, Any]: A dictionary containing the configuration settings for the addon.
@@ -50,22 +90,36 @@ def getConfig() -> dict[str, Any]:
     if not mw:
         return {}
 
-    # Fetch the configuration from the addon manager or load the default from the config file
-    config = mw.addonManager.getConfig(g.__addon_id__) or json.loads(
-        readFile(os.path.join(g.ADDON_PATH, "config.json")) or "{}"
-    )
+    # The timestamped JSON in the media folder is the synced source of truth. The
+    # addon manager is only used for first-run/migration when that file is absent.
+    config = _read_config_file(config_file_path())
+    if config is None:
+        # CONFIG_TIMESTAMP is stored with the addon and is not synchronized.
+        # Recover from the media folder before consulting local Desktop state.
+        timestamp = latest_config_timestamp()
+        if timestamp:
+            g.__config_timestamp__ = timestamp
+            config = _read_config_file(config_file_path(timestamp))
 
-    # Update the configuration with the addon 'enabled' status
+    if config is None:
+        config = mw.addonManager.getConfig(g.__addon_id__) or json.loads(
+            readFile(os.path.join(g.ADDON_PATH, "config.json")) or "{}"
+        )
+
+    config = dict(config)
+
+    # The enabled state is local to Desktop; persist it to the synced JSON so
+    # disabling the addon also propagates to mobile clients.
     config.update({"enabled": mw.addonManager.isEnabled(g.__addon_id__)})
     return config
 
 
-def updateConfigFile(config: Dict[str, Any] = {}) -> tuple[dict[str, Any], str]:
+def updateConfigFile(config: Optional[Dict[str, Any]] = None) -> tuple[dict[str, Any], str]:
     """
     Updates the configuration file for the SmarterTypeField addon.
     Args:
         config (Dict[str, Any], optional): A dictionary containing the configuration settings.
-                                           If not provided, the current configuration will be fetched.
+                           If not provided, the current configuration will be fetched.
     Returns:
         tuple[dict[str, Any], str]: A tuple containing the updated configuration dictionary and the timestamp
                                     of when the configuration was updated.
@@ -78,28 +132,22 @@ def updateConfigFile(config: Dict[str, Any] = {}) -> tuple[dict[str, Any], str]:
     """
 
     if not mw:
-        return (config, "")
+        return (config or {}, "")
 
-    if not config:
+    if config is None:
         config = getConfig()
     else:
-        # If config is provided, just update the 'enabled' status
+        config = dict(config)
+
+        # If config is provided, just update the 'enabled' status.
         config.update({"enabled": mw.addonManager.isEnabled(g.__addon_id__)})
 
-    if g.__config_timestamp__:
-        # if a config was previously saved, check if the new config is the same as the old config
-
-        # parse config file from the json file (if it exists)
-        old_config = json.loads(
-            readFile(
-                os.path.join(g.ADDON_PATH, f"_smarterTypeField.config{g.__config_timestamp__}.json")
-            )
-            or "{}"
-        )
-
-        # if the config is the same as the old config, just return the old config, no need to update
-        if config == old_config:
-            return (config, g.__config_timestamp__)
+    current_config_path = config_file_path()
+    old_config = _read_config_file(current_config_path)
+    if old_config == config and current_config_path and os.path.exists(current_config_path):
+        if readFile(g.CONFIG_TIMESTAMP_FILE) != g.__config_timestamp__:
+            writeToFile(g.CONFIG_TIMESTAMP_FILE, g.__config_timestamp__ or "")
+        return (config, g.__config_timestamp__)
 
     timestamp = currentTimestamp()
     delete_all_deps(g.media_collection_dir, "_smarterTypeField.config")
@@ -116,6 +164,7 @@ def updateConfigFile(config: Dict[str, Any] = {}) -> tuple[dict[str, Any], str]:
         timestamp,
     )
 
+    g.__config_timestamp__ = timestamp
     return (config, timestamp)
 
 
