@@ -246,14 +246,17 @@ def setupAddon():
         showInfo("Media collection directory not found.")
         return
 
-    # setup Media Folder
+    # The JS asset is versioned independently from the configuration. Config
+    # recovery may call this function, so only copy the JS when this VERSION
+    # has not already been installed in the media folder.
     path_js = os.path.join(g.ADDON_PATH, "_smarterTypeField.min.js")
     filename_save = f"_smarterTypeField.min{g.__version__}.js"
 
-    # copy file to media folder after deleting all previous versions
-    delete_all_deps(g.media_collection_dir, "_ignoreCase")  # Remove this line in later versions
-    delete_all_deps(g.media_collection_dir, "_smarterTypeField.min")
-    shutil.copyfile(path_js, os.path.join(g.media_collection_dir, filename_save))
+    if not os.path.exists(os.path.join(g.media_collection_dir, filename_save)):
+        # Copy the new version after deleting previous versions.
+        delete_all_deps(g.media_collection_dir, "_ignoreCase")  # Remove this line in later versions
+        delete_all_deps(g.media_collection_dir, "_smarterTypeField.min")
+        shutil.copyfile(path_js, os.path.join(g.media_collection_dir, filename_save))
 
     g.__addon_config__, g.__config_timestamp__ = updateConfigFile()
 
