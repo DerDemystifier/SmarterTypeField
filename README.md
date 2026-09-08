@@ -38,8 +38,11 @@ Simply install [the addon](https://ankiweb.net/shared/info/1371444066) on your A
 ### I installed the add-on, but it's not working. What do I do?
 
 > 1.  First, you need to restart Anki after installing the add-on.
-> 1.  Check the 'Back Template' of your card to see if the `{{type:}}` field is present and the script tag is added. It looks like this:
+> 1.  Check the 'Front Template' of your card to see if the `{{type:}}` field is present and the script tag is added. It looks like this:
 > ![](docs/images/script_tag.png)
+>
+> > Remember that Anki only allows one `{{type:}}` field per card. You cannot have multiple `{{type:}}` fields.
+>
 > 1.  If the script tag is present and it still doesn't work as expected, please open a support ticket above, labelled _'Issues'_; If on AnkiWeb, click _'Contact Author'_.
 
 ### What the Heck is the "Back Template" of my Anki Cards?
